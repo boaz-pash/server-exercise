@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const isEmail = require("isemail");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const app = express();
@@ -31,13 +32,19 @@ app.post("/users", async (req, res) => {
   try {
     let userHash = await bcrypt.hash(req.body.password, saltRounds);
     console.log(userHash);
-    const newUser = {
-      id: uuid(),
-      email: req.body.email,
-      password: userHash,
-    };
-    users.push(newUser);
-    res.status(201).send(`${newUser.email} Created successfully`);
+    let reqEmail = "";
+    if (!isEmail.validate(req.body.email)) {
+      res.send("email not valid");
+    } else {
+      reqEmail = req.body.email;
+      const newUser = {
+        id: uuid(),
+        email: reqEmail,
+        password: userHash,
+      };
+      users.push(newUser);
+      res.status(201).send(`${newUser.email} Created successfully`);
+    }
     console.log(users);
   } catch (error) {
     console.log(error);
