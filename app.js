@@ -4,7 +4,6 @@ const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const app = express();
 const users = require("./data");
-const { log } = require("console");
 app.use(cors());
 app.use(express.json());
 const port = 8080;
@@ -71,7 +70,7 @@ app.listen(port, () => {
   console.log("The server is working");
 });
 
-async function checkUser(userId, pass) {
-  const match = await bcrypt.compare(pass, userId.password);
+async function checkUser(user, pass) {
+  const match = await bcrypt.compare(pass, user.password);
   return match;
 }
