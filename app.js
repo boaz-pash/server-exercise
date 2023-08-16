@@ -4,37 +4,46 @@ const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const app = express();
 const users = require("./data");
-app.use(cors());
-app.use(express.json());
+
 const port = 8080;
 let uuid = crypto.randomUUID;
 const saltRounds = 10;
 
+async function checkUsersPassword(user, pass) {
+  const match = await bcrypt.compare(pass, user.password);
+  return match;
+}
+app.use(cors());
+app.use(express.json());
+
 app.get("/", (req, res) => {
-  res.send(users);
+  res.status(200).send(users);
 });
+
 app.get("/users/:id", (req, res) => {
   const id = req.params.id;
   let user = users.filter((item) => item.id == id);
   console.log(user);
-  res.send(user);
+  res.status(200).send(user);
 });
+
 app.post("/users", async (req, res) => {
-  let userHash = "";
-  await bcrypt.hash(req.body.password, saltRounds).then((hash) => {
-    // console.log("Hash ", hash);
-    userHash = hash;
+  try {
+    let userHash = await bcrypt.hash(req.body.password, saltRounds);
     console.log(userHash);
-  });
-  const newUser = {
-    id: uuid(),
-    email: req.body.email,
-    password: userHash,
-  };
-  users.push(newUser);
-  res.send(`${newUser.email} Created successfully`);
-  console.log(users);
+    const newUser = {
+      id: uuid(),
+      email: req.body.email,
+      password: userHash,
+    };
+    users.push(newUser);
+    res.status(201).send(`${newUser.email} Created successfully`);
+    console.log(users);
+  } catch (error) {
+    console.log(error);
+  }
 });
+
 app.put("/users/:id", (req, res) => {
   const id = req.params.id;
   let user = users.filter((item) => item.id == id);
@@ -44,33 +53,34 @@ app.put("/users/:id", (req, res) => {
     password: req.body.password,
   };
   users[users.indexOf(user)] = updatedUser;
-  res.send(users[users.indexOf(user)]);
-  console.log(users);
+  res.status(200).send(users[users.indexOf(user)]);
   console.log(users);
 });
+
 app.delete("/users/:id", (req, res) => {
   const id = req.params.id;
   let user = users.filter((item) => item.id == id);
   let index = users[users.indexOf(user)];
   index > 0 ? users.splice(index, index) : users.shift();
-  res.send(users[index]);
   console.log(users);
+  res.send("User deleted");
 });
+
 app.post("/login", (req, res) => {
   const user = users.filter((item) => item.email == req.body.email);
-  if (user.length == 1) {
-    checkUser(user[0], req.body.password) == true
-      ? res.send("Connected")
-      : res.send("Something went wrong");
+  if (user.length === 1) {
+    if (checkUsersPassword(user[0], req.body.password) == true) {
+      res.status(200).send("Connected");
+    } else {
+      console.log("password incorrect");
+      res.send("Something went wrong");
+    }
   } else {
-    res.send("User do's not exist");
+    console.log("user dos'nt exist");
+    res.send("Something went wrong");
   }
 });
+
 app.listen(port, () => {
   console.log("The server is working");
 });
-
-async function checkUser(user, pass) {
-  const match = await bcrypt.compare(pass, user.password);
-  return match;
-}
