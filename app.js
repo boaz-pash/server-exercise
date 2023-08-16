@@ -1,12 +1,15 @@
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
+const bcrypt = require("bcrypt");
 const app = express();
 const users = require("./data");
+const { log } = require("console");
 app.use(cors());
 app.use(express.json());
 const port = 8080;
 let uuid = crypto.randomUUID;
+const saltRounds = 10;
 
 app.get("/", (req, res) => {
   res.send(users);
@@ -17,14 +20,20 @@ app.get("/users/:id", (req, res) => {
   console.log(user);
   res.send(user);
 });
-app.post("/users", (req, res) => {
+app.post("/users", async (req, res) => {
+  let userHash = "";
+  await bcrypt.hash(req.body.password, saltRounds).then((hash) => {
+    // console.log("Hash ", hash);
+    userHash = hash;
+    console.log(userHash);
+  });
   const newUser = {
     id: uuid(),
     email: req.body.email,
-    password: req.body.password,
+    password: userHash,
   };
   users.push(newUser);
-  res.status(200).send(`${newUser.email} Created successfully`);
+  res.send(`${newUser.email} Created successfully`);
   console.log(users);
 });
 app.put("/users/:id", (req, res) => {
@@ -51,14 +60,18 @@ app.delete("/users/:id", (req, res) => {
 app.post("/login", (req, res) => {
   const user = users.filter((item) => item.email == req.body.email);
   if (user.length == 1) {
-    user[0].password == req.body.password
+    checkUser(user[0], req.body.password) == true
       ? res.send("Connected")
       : res.send("Something went wrong");
-  }
-  else{
-    res.send("User do's not exist")
+  } else {
+    res.send("User do's not exist");
   }
 });
 app.listen(port, () => {
   console.log("The server is working");
 });
+
+async function checkUser(userId, pass) {
+  const match = await bcrypt.compare(pass, userId.password);
+  return match;
+}
