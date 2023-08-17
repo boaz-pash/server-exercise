@@ -19,8 +19,8 @@ jsonfile.readFile(dataFile, function (err, obj) {
   users = obj;
 });
 
-async function checkUsersPassword(user, pass) {
-  const match = await bcrypt.compare(pass, user.password);
+function checkUsersPassword(user, pass) {
+  const match = bcrypt.compare(pass, user.password);
   return match;
 }
 
@@ -87,11 +87,10 @@ app.delete("/users/:id", (req, res) => {
   res.send("User deleted");
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const user = users.filter((item) => item.email === req.body.email);
   if (user.length === 1) {
-    // console.log(checkUsersPassword(user[0], req.body.password));
-    if (checkUsersPassword(user[0], req.body.password) === true) {
+    if ((await checkUsersPassword(user[0], req.body.password)) === true) {
       res.status(200).send("Connected");
     } else {
       console.log("password incorrect");
