@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
 const isEmail = require("isemail");
 const jsonfile = require("jsonfile");
 const bcrypt = require("bcrypt");
@@ -18,7 +19,6 @@ jsonfile.readFile(dataFile, function (err, obj) {
   if (err) console.error(err);
   users = obj;
 });
-
 function checkUsersPassword(user, pass) {
   const match = bcrypt.compare(pass, user.password);
   return match;
@@ -100,6 +100,26 @@ app.post("/login", async (req, res) => {
     console.log("user dos'nt exist");
     res.send("Something went wrong");
   }
+});
+
+app.put("/users/product/:id", async (req, res) => {
+  const id = req.params.id;
+  const rand = Math.floor(Math.random() * (30 - 1 + 1)) + 1;
+  let user = users.filter((item) => item.id == id);
+  try {
+    const product = await axios.get("https://dummyjson.com/products");
+    user[0].product = product.data.products[rand];
+    users[users.indexOf(user[0])] = user[0];
+    const response = await axios.post("https://jsonplaceholder.typicode.com/users",user[0]);
+    console.log(response.data);
+    jsonfile.writeFile(dataFile, users, function (err) {
+      if (err) console.error(err);
+    });
+    res.status(200).send(response.data);
+  } catch (error) {
+    console.log(error);
+  }
+  
 });
 
 app.listen(port, () => {
